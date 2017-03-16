@@ -57,12 +57,27 @@ struct MixedDtor
 struct SNoDtor {}
 class CNoDtor {}
 
+struct Bar17257(E)
+{
+    ~this() @safe @nogc nothrow
+    {
+        assert(__traits(hasMember, E, "__xdtor"));
+    }
+}
+
+struct Foo17257
+{
+    Bar17257!Foo17257 foo;
+    ~this() @safe @nogc nothrow {}
+}
+
 static assert(!__traits(hasMember, SNoDtor, "__xdtor"));
 static assert(!__traits(hasMember, CNoDtor, "__xdtor"));
 
 void test2() @safe @nogc nothrow
 {
     FieldDtor a;
+    Foo17257 foo17257;
     assert(Counter.cnt == 0);
     a.__xdtor();
     assert(Counter.cnt == 1);

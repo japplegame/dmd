@@ -997,7 +997,17 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
 
+    FuncDeclaration xdtor_fwd = null;
     Expression e = null;
+
+    // bug 17257
+    if (ad.dtors.dim == 1)
+    {   
+        xdtor_fwd = ad.dtors[0];
+        auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor_fwd);
+        _alias.addMember(sc, ad); // temporaly add to symbol table
+    }
+
     for (size_t i = 0; i < ad.fields.dim; i++)
     {
         auto v = ad.fields[i];
@@ -1091,7 +1101,6 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
     case 0:
         break;
-
     case 1:
         xdtor = ad.dtors[0];
         break;
@@ -1129,7 +1138,10 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor);
         _alias.semantic(sc);
         ad.members.push(_alias);
-        _alias.addMember(sc, ad); // add to symbol table
+        if (xdtor_fwd)
+            ad.symtab.update(_alias); // update forward dtor to correct one
+        else
+            _alias.addMember(sc, ad); // add to symbol table
     }
     return xdtor;
 }
